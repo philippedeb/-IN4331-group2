@@ -1,7 +1,7 @@
 import os
 import atexit
-from bson import ObjectId
 
+from bson import ObjectId
 from flask import Flask, jsonify
 from pymongo import MongoClient
 
