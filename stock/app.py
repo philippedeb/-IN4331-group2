@@ -8,7 +8,7 @@ from pymongo import MongoClient
 
 app = Flask("stock-service")
 
-mongo_url = ""
+mongo_url = os.environ['DB_URL']
 
 client = MongoClient(mongo_url, ssl=True, tlsAllowInvalidCertificates=True)
 db = client["wdm"]

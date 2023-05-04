@@ -11,7 +11,7 @@ gateway_url = os.environ['GATEWAY_URL']
 
 app = Flask("order-service")
 
-mongo_url = ""
+mongo_url = os.environ['DB_URL']
 
 client = MongoClient(mongo_url, ssl=True, tlsAllowInvalidCertificates=True)
 db = client["wdm"]
