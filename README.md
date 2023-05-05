@@ -3,7 +3,7 @@
 Basic project structure with Python's Flask and Redis. 
 **You are free to use any web framework in any language and any database you like for this project.**
 
-### Project structure
+## Project structure
 
 * `env`
     Folder containing the Redis env variables for the docker-compose deployment
@@ -26,16 +26,18 @@ Basic project structure with Python's Flask and Redis.
 * `test`
     Folder containing some basic correctness tests for the entire system. (Feel free to enhance them)
 
-### Deployment types:
+## Deployment types:
 
-#### docker-compose (local development)
+### docker-compose (local development)
 
-After coding the REST endpoint logic run `docker-compose up --build` in the base folder to test if your logic is correct
-(you can use the provided tests in the `\test` folder and change them as you wish). 
+Enter the database URL and password in the .env files for each corresponding service. Start a new virtual environment and run `docker-compose up --build` to start the gateway and its services.
+
+#### Example HTTP request
+```[POST]: localhost:8000/orders/create/1```
 
 ***Requirements:*** You need to have docker and docker-compose installed on your machine.
 
-#### minikube (local k8s cluster)
+### minikube (local k8s cluster)
 
 This setup is for local k8s testing to see if your k8s config works before deploying to the cloud. 
 First deploy your database using helm by running the `deploy-charts-minicube.sh` file (in this example the DB is Redis 
@@ -44,7 +46,7 @@ but you can find any database you want in https://artifacthub.io/ and adapt the 
 
 ***Requirements:*** You need to have minikube (with ingress enabled) and helm installed on your machine.
 
-#### kubernetes cluster (managed k8s cluster in the cloud)
+### kubernetes cluster (managed k8s cluster in the cloud)
 
 Similarly to the `minikube` deployment but run the `deploy-charts-cluster.sh` in the helm step to also install an ingress to the cluster. 
 
