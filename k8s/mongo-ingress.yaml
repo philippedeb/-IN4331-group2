@@ -2,31 +2,34 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: mongodb-ingress
+   annotations:
+   kubernetes.io/ingress.class: nginx
+   nginx.ingress.kubernetes.io/rewrite-target: /$1
 spec:
   rules:
     - http:
         paths:
-          - path: /orderdb
+          - path: /orderdb/?(.*)
             pathType: Prefix
             backend:
               service:
-                name: order-mongodb-service
+                name: order-service
                 port:
-                  number: 27017
-          - path: /stockdb
+                  number: 5000
+          - path: /stockdb/?(.*)
             pathType: Prefix
             backend:
               service:
-                name: stock-mongodb-service
+                name: stock-service
                 port:
-                  number: 27017
-          - path: /userdb
+                  number: 5000
+          - path: /userdb/?(.*)
             pathType: Prefix
             backend:
               service:
-                name: user-mongodb-service
+                name: user-service
                 port:
-                  number: 27017
+                  number: 5000
 ---
 apiVersion: v1
 kind: Service
@@ -34,11 +37,11 @@ metadata:
   name: dbs-access-service
 spec:
   selector:
-    app: mongodb-ingress
+    app: ingress-servess
   type: LoadBalancer  
   ports:
     - protocol: TCP
-      port: 27017
-      targetPort: 27017
+      port: 8081
+      targetPort: 8081
       nodePort: 30001
 
