@@ -1,21 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: order-mongodb-deployment
+  name: order-mongodb
   labels:
-    app: mongodb
+    app: order-mongodb
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: mongodb
+      app: order-mongodb
   template:
     metadata:
       labels:
-        app: mongodb
+        app: order-mongodb
     spec:
       containers:
-      - name: mongodb
+      - name: order-mongodb
         image: mongo
         ports:
         - containerPort: 27017
@@ -34,10 +34,10 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: mongodb-service
+  name: order-mongodb-service
 spec:
   selector:
-    app: mongodb
+    app: order-mongodb
   ports:
     - protocol: TCP
       port: 27017

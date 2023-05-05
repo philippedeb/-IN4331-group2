@@ -3,4 +3,6 @@ kind: ConfigMap
 metadata:
   name: mongodb-configmap
 data:
-  database_url: mongodb-service
+  order_database_url: order-mongodb-service
+  stock_database_url: stock-mongodb-service
+  user_database_url: user-mongodb-service
