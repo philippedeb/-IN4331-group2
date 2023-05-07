@@ -43,6 +43,7 @@ def find_user(user_id: str):
 
 @app.post('/add_funds/<user_id>/<amount>')
 def add_credit(user_id: str, amount: int):
+    amount = int(amount)
     result = payments.update_one({"_id": ObjectId(user_id)}, {"$inc": {"credit": amount}})
     if result.matched_count > 0:
         return jsonify({"Success": True}), 200
@@ -52,6 +53,7 @@ def add_credit(user_id: str, amount: int):
 
 @app.post('/pay/<user_id>/<order_id>/<amount>')
 def remove_credit(user_id: str, order_id: str, amount: int):
+    amount = int(amount)
     result = payments.update_one({"_id": ObjectId(user_id), "credit": {"$gte": amount}}, {"$inc": {"credit": -amount}})
     if result.matched_count > 0:
         payments.update_one({"_id": ObjectId(user_id)}, {"$addToSet": {"paid_orders": order_id}})
@@ -61,23 +63,13 @@ def remove_credit(user_id: str, order_id: str, amount: int):
 
 
 
-@app.post('/cancel/<user_id>/<order_id>')
-def cancel_payment(user_id: str, order_id: str):
+@app.post('/cancel/<user_id>/<order_id>/<amount>')
+def cancel_payment(user_id: str, order_id: str, amount: int):
     user = payments.find_one({"_id": ObjectId(user_id), "paid_orders": order_id})
     if user:
-        response = requests.get(f"{gateway_url}/order-service/find/{order_id}")
-        if response.status_code != 200:
-            return jsonify({"Error": "Order not found"}), 404
-
-        order = response.json()
-        amount = order["total_cost"]
-
+        amount = int(amount)
         result = payments.update_one({"_id": ObjectId(user_id)}, {"$inc": {"credit": amount}, "$pull": {"paid_orders": order_id}})
-        if result.matched_count > 0:
-            for item_id in order["items"]:
-                requests.post(f"{gateway_url}/stock-service/add/{item_id}/{1}")
-
-            return jsonify({"Success": True}), 200
+        return jsonify({"Success": True}), 200
     else:
         return jsonify({"Error": "Payment not found"}), 404
 
