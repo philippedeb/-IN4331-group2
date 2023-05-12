@@ -13,13 +13,19 @@ services:
     image: order:latest
     environment:
       - GATEWAY_URL=http://gateway:80
+      - MONGO_DB_NAME=order-db
+      - MONGO_DB_HOST=order-db
     command: gunicorn -b 0.0.0.0:5000 app:app -w 1 --timeout 10
     env_file:
       - env/order_redis.env
 
   order-db:
-    image: redis:latest
-    command: redis-server --requirepass redis --maxmemory 512mb
+    image: mongo
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - order-db-data:/data/db
 
   stock-service:
     build: ./stock
@@ -27,12 +33,18 @@ services:
     command: gunicorn -b 0.0.0.0:5000 app:app -w 1 --timeout 10
     environment:
       - GATEWAY_URL=http://gateway:80
+      - MONGO_DB_NAME=stock-db
+      - MONGO_DB_HOST=stock-db
     env_file:
       - env/stock_redis.env
 
   stock-db:
-    image: redis:latest
-    command: redis-server --requirepass redis --maxmemory 512mb
+    image: mongo
+    restart: always
+    ports:
+      - "27018:27017"
+    volumes:
+      - stock-db-data:/data/db
 
   payment-service:
     build: ./payment
@@ -40,9 +52,20 @@ services:
     command: gunicorn -b 0.0.0.0:5000 app:app -w 1 --timeout 10
     environment:
       - GATEWAY_URL=http://gateway:80
+      - MONGO_DB_NAME=payment-db
+      - MONGO_DB_HOST=payment-db
     env_file:
       - env/payment_redis.env
 
   payment-db:
-    image: redis:latest
-    command: redis-server --requirepass redis --maxmemory 512mb
+    image: mongo
+    restart: always
+    ports:
+      - "27019:27017"
+    volumes:
+      - payment-db-data:/data/db
+
+volumes:
+  order-db-data:
+  stock-db-data:
+  payment-db-data:
