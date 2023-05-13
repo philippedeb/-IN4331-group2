@@ -19,13 +19,11 @@ services:
   order-service:
     build: ./order
     image: order:latest
-#    environment:
-#      - GATEWAY_URL=http://gateway:80
-#      - MONGO_DB_NAME=order-db
-#      - MONGO_DB_HOST=order-db
-#    command: gunicorn -b 0.0.0.0:5000 app:app -w 1 --timeout 10
-#    env_file:
-#      - env/order_redis.env
+    command: gunicorn -b 0.0.0.0:5000 app:app -w 1 --timeout 10
+    environment:
+      - GATEWAY_URL=http://gateway:80
+    env_file:
+      - env/order_mongo.env
     depends_on:
       - order-db
     networks:
@@ -34,26 +32,21 @@ services:
   order-db:
     image: mongo
     restart: always
+    volumes:
+      - order-db-data:/data/db
     ports:
       - "27017:27017"
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: example
-#    volumes:
-#      - order-db-data:/data/db
     networks:
       - order-network
 
   stock-service:
     build: ./stock
     image: stock:latest
-#    command: gunicorn -b 0.0.0.0:5000 app:app -w 1 --timeout 10
-#    environment:
-#      - GATEWAY_URL=http://gateway:80
-#      - MONGO_DB_NAME=stock-db
-#      - MONGO_DB_HOST=stock-db
-#    env_file:
-#      - env/stock_redis.env
+    command: gunicorn -b 0.0.0.0:5000 app:app -w 1 --timeout 10
+    environment:
+      - GATEWAY_URL=http://gateway:80
+    env_file:
+      - env/stock_mongo.env
     depends_on:
       - stock-db
     networks:
@@ -64,9 +57,6 @@ services:
     restart: always
     ports:
       - "27018:27017"
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: example
     volumes:
       - stock-db-data:/data/db
     networks:
@@ -75,13 +65,11 @@ services:
   payment-service:
     build: ./payment
     image: user:latest
-#    command: gunicorn -b 0.0.0.0:5000 app:app -w 1 --timeout 10
-#    environment:
-#      - GATEWAY_URL=http://gateway:80
-#      - MONGO_DB_NAME=payment-db
-#      - MONGO_DB_HOST=payment-db
-#    env_file:
-#      - env/payment_redis.env
+    command: gunicorn -b 0.0.0.0:5000 app:app -w 1 --timeout 10
+    environment:
+      - GATEWAY_URL=http://gateway:80
+    env_file:
+      - env/payment_mongo.env
     depends_on:
       - payment-db
     networks:

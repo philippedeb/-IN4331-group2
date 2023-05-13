@@ -16,7 +16,7 @@ app = Flask("order-service")
 
 mongo_url = os.environ['DB_URL']
 
-client = MongoClient(mongo_url, ssl=True, tlsAllowInvalidCertificates=True)
+client = MongoClient(mongo_url)
 db = client["wdm"]
 orders = db["orders"]
 
