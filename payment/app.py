@@ -6,9 +6,6 @@ from flask import Flask, jsonify
 from pymongo import MongoClient
 import requests
 
-
-gateway_url = os.environ['GATEWAY_URL']
-
 app = Flask("payment-service")
 
 mongo_url = os.environ['DB_URL']

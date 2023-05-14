@@ -18,10 +18,11 @@ services:
 
   order-service:
     build: ./order
-    image: order:latest
+    image: enriquebarba97/order-service:m1
     command: gunicorn -b 0.0.0.0:5000 app:app -w 1 --timeout 10
     environment:
-      - GATEWAY_URL=http://gateway:80
+      - STOCK_URL=http://stock-service:5000
+      - PAYMENT_URL=http://payment-service:5000
     env_file:
       - env/order_mongo.env
     depends_on:
@@ -41,10 +42,8 @@ services:
 
   stock-service:
     build: ./stock
-    image: stock:latest
+    image: enriquebarba97/stock-service:m1
     command: gunicorn -b 0.0.0.0:5000 app:app -w 1 --timeout 10
-    environment:
-      - GATEWAY_URL=http://gateway:80
     env_file:
       - env/stock_mongo.env
     depends_on:
@@ -64,10 +63,8 @@ services:
 
   payment-service:
     build: ./payment
-    image: user:latest
+    image: enriquebarba97/payment-service:m1
     command: gunicorn -b 0.0.0.0:5000 app:app -w 1 --timeout 10
-    environment:
-      - GATEWAY_URL=http://gateway:80
     env_file:
       - env/payment_mongo.env
     depends_on:
