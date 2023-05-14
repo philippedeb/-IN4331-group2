@@ -27,7 +27,7 @@ spec:
     spec:
       containers:
         - name: stock
-          image: ghcr.io/philippedeb/wdm:stock
+          image: philippedeb/wdm:stock
           resources:
             limits:
               memory: "1Gi"

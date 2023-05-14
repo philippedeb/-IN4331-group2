@@ -27,7 +27,7 @@ spec:
     spec:
       containers:
         - name: order
-          image: ghcr.io/philippedeb/wdm:order
+          image: philippedeb/wdm:order
           resources:
             limits:
               memory: "1Gi"

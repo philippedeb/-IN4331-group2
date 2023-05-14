@@ -27,7 +27,7 @@ spec:
     spec:
       containers:
         - name: user
-          image: ghcr.io/philippedeb/wdm:payment
+          image: philippedeb/wdm:payment
           resources:
             limits:
               memory: "1Gi"
