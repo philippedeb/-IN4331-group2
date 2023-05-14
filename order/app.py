@@ -10,21 +10,20 @@ from saga import Saga, State
 import asyncio
 
 
-gateway_url = os.environ['GATEWAY_URL']
+payment_url = os.environ['PAYMENT_URL']
+stock_url = os.environ['STOCK_URL']
 
 app = Flask("order-service")
 
 mongo_url = os.environ['DB_URL']
 
-client = MongoClient(mongo_url, ssl=True, tlsAllowInvalidCertificates=True)
+client = MongoClient(mongo_url)
 db = client["wdm"]
 orders = db["orders"]
 
-def close_db_connection():
-    client.close()
 
 def close_db_connection():
-    db.close()
+    client.close()
 
 
 atexit.register(close_db_connection)
@@ -48,7 +47,8 @@ def remove_order(order_id):
 
 @app.post('/addItem/<order_id>/<item_id>')
 def add_item(order_id, item_id):
-    result = orders.update_one({"_id": ObjectId(order_id)}, {"$addToSet": {"items": item_id}})
+    result = orders.update_one({"_id": ObjectId(order_id)}, {
+                               "$addToSet": {"items": item_id}})
     if result.matched_count > 0:
         return jsonify({"Success": True}), 200
     else:
@@ -57,7 +57,8 @@ def add_item(order_id, item_id):
 
 @app.delete('/removeItem/<order_id>/<item_id>')
 def remove_item(order_id, item_id):
-    result = orders.update_one({"_id": ObjectId(order_id)}, {"$pull": {"items": item_id}})
+    result = orders.update_one({"_id": ObjectId(order_id)}, {
+                               "$pull": {"items": item_id}})
     if result.matched_count > 0:
         return jsonify({"Success": True}), 200
     else:
@@ -70,15 +71,17 @@ def find_order(order_id):
     if order:
         order["_id"] = str(order["_id"])
         items = order["items"]
+        app.logger.error(items)
         total_cost = 0
         for item_id in items:
-            item = requests.get(f"{gateway_url}/stock/find/{item_id}").json()
+            item = requests.get(f"{stock_url}/find/{item_id}").json()
+            app.logger.error(item)
             total_cost += int(item["price"])
         order["total_cost"] = total_cost
         return jsonify(order), 200
     else:
         return jsonify({"Error": "Order not found"}), 404
-    
+
 
 @app.post('/checkout/<order_id>')
 def checkout(order_id):
@@ -89,23 +92,29 @@ def checkout(order_id):
         saga = Saga()
 
         for item_id in order["items"]:
-            item = requests.get(f"{gateway_url}/stock/find/{item_id}").json()
+            item = requests.get(f"{stock_url}/find/{item_id}").json()
             total_cost += int(item["price"])
 
             # One saga step for each item to update
-            saga.add_step(f"Decrease {item_id}", decrease_stock_action(item_id), decrease_stock_compensation(item_id))
+            saga.add_step(f"Decrease {item_id}", decrease_stock_action(
+                item_id), decrease_stock_compensation(item_id))
 
         # One saga step for payment
-        saga.add_step(f"Payment user {user_id}: {total_cost}", payment_action(user_id, order_id, total_cost), payment_compensation(user_id, order_id, total_cost))
+        saga.add_step(f"Payment user {user_id}: {total_cost}", payment_action(
+            user_id, order_id, total_cost), payment_compensation(user_id, order_id, total_cost))
 
         asyncio.run(saga.run())
 
         if saga.state == State.SUCCESS:
             return jsonify({"Success": True}), 200
         else:
+
+            error = {}
             for step in saga.steps:
+                error[step.name] = step.state.name
                 app.logger.error(f"Step {step.name}: {step.state}")
-            return jsonify({"Error": "Something happened"}), 400
+            
+            return jsonify({"Error": error}), 400
 
     else:
         return jsonify({"Error": "Order not found"}), 404
@@ -114,34 +123,39 @@ def checkout(order_id):
 def decrease_stock_action(item_id):
     """Return coroutine function that decreases stock of item with given id by 1"""
     async def func():
-        response = requests.post(f"{gateway_url}/stock/subtract/{item_id}/{1}")
+        response = requests.post(f"{stock_url}/subtract/{item_id}/{1}")
         if response.status_code != 200:
             return False
         return True
     return func
+
 
 def decrease_stock_compensation(item_id):
     """Return coroutine function that compensates the decrease_stock (increases stock of item with given id by 1)"""
     async def func():
-        response = requests.post(f"{gateway_url}/stock/add/{item_id}/{1}")
+        response = requests.post(f"{stock_url}/add/{item_id}/{1}")
         if response.status_code != 200:
             return False
         return True
     return func
+
 
 def payment_action(user_id, order_id, total_cost):
     """Return coroutine function to deduct payment from user_id with total_cost, associated with order_id"""
     async def func():
-        response = requests.post(f"{gateway_url}/payment/pay/{user_id}/{order_id}/{total_cost}")
+        response = requests.post(
+            f"{payment_url}/pay/{user_id}/{order_id}/{total_cost}")
         if response.status_code != 200:
             return False
         return True
     return func
 
+
 def payment_compensation(user_id, order_id, total_cost):
     """Return coroutine function to compensate payment (add total_cost to user_i, associated with order_id"""
     async def func():
-        response = requests.post(f"{gateway_url}/payment/cancel/{user_id}/{order_id}/{total_cost}")
+        response = requests.post(
+            f"{payment_url}/cancel/{user_id}/{order_id}/{total_cost}")
         if response.status_code != 200:
             return False
         return True

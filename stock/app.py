@@ -10,12 +10,14 @@ app = Flask("stock-service")
 
 mongo_url = os.environ['DB_URL']
 
-client = MongoClient(mongo_url, ssl=True, tlsAllowInvalidCertificates=True)
+client = MongoClient(mongo_url)
 db = client["wdm"]
 stock = db["stock"]
 
+
 def close_db_connection():
     client.close()
+
 
 atexit.register(close_db_connection)
 
@@ -38,13 +40,14 @@ def find_item(item_id: str):
             return jsonify({"Error": "Item not found"}), 404
     except Exception as e:
         return jsonify({"Error": str(e)}), 400
-    
+
 
 @app.post('/add/<item_id>/<amount>')
 def add_stock(item_id: str, amount: int):
     try:
         amount = int(amount)
-        result = stock.update_one({"_id": ObjectId(item_id)}, {"$inc": {"stock": amount}})
+        result = stock.update_one({"_id": ObjectId(item_id)}, {
+                                  "$inc": {"stock": amount}})
         if result.matched_count > 0:
             return jsonify({"Success": True}), 200
         else:
@@ -57,7 +60,8 @@ def add_stock(item_id: str, amount: int):
 def remove_stock(item_id: str, amount: int):
     try:
         amount = int(amount)
-        result = stock.update_one({"_id": ObjectId(item_id), "stock": {"$gte": amount}}, {"$inc": {"stock": -amount}})
+        result = stock.update_one({"_id": ObjectId(item_id), "stock": {
+                                  "$gte": amount}}, {"$inc": {"stock": -amount}})
         if result.matched_count > 0:
             return jsonify({"Success": True}), 200
         else:

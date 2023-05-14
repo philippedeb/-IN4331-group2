@@ -1,4 +1,6 @@
 version: "3"
+networks:
+  order-network:
 services:
 
   gateway:
@@ -7,42 +9,82 @@ services:
       - ./gateway_nginx.conf:/etc/nginx/nginx.conf:ro
     ports:
       - "8000:80"
+    depends_on:
+      - order-service
+      - stock-service
+      - payment-service
+    networks:
+      - order-network
 
   order-service:
     build: ./order
-    image: order:latest
-    environment:
-      - GATEWAY_URL=http://gateway:80
+    image: enriquebarba97/order-service:m1
     command: gunicorn -b 0.0.0.0:5000 app:app -w 1 --timeout 10
+    environment:
+      - STOCK_URL=http://stock-service:5000
+      - PAYMENT_URL=http://payment-service:5000
     env_file:
-      - env/order_redis.env
+      - env/order_mongo.env
+    depends_on:
+      - order-db
+    networks:
+      - order-network
 
   order-db:
-    image: redis:latest
-    command: redis-server --requirepass redis --maxmemory 512mb
+    image: mongo
+    restart: always
+    volumes:
+      - order-db-data:/data/db
+    ports:
+      - "27017:27017"
+    networks:
+      - order-network
 
   stock-service:
     build: ./stock
-    image: stock:latest
+    image: enriquebarba97/stock-service:m1
     command: gunicorn -b 0.0.0.0:5000 app:app -w 1 --timeout 10
-    environment:
-      - GATEWAY_URL=http://gateway:80
     env_file:
-      - env/stock_redis.env
+      - env/stock_mongo.env
+    depends_on:
+      - stock-db
+    networks:
+      - order-network
 
   stock-db:
-    image: redis:latest
-    command: redis-server --requirepass redis --maxmemory 512mb
+    image: mongo
+    restart: always
+    ports:
+      - "27018:27017"
+    volumes:
+      - stock-db-data:/data/db
+    networks:
+      - order-network
 
   payment-service:
     build: ./payment
-    image: user:latest
+    image: enriquebarba97/payment-service:m1
     command: gunicorn -b 0.0.0.0:5000 app:app -w 1 --timeout 10
-    environment:
-      - GATEWAY_URL=http://gateway:80
     env_file:
-      - env/payment_redis.env
+      - env/payment_mongo.env
+    depends_on:
+      - payment-db
+    networks:
+      - order-network
+
 
   payment-db:
-    image: redis:latest
-    command: redis-server --requirepass redis --maxmemory 512mb
+    image: mongo
+    restart: always
+    ports:
+      - "27019:27017"
+    volumes:
+      - payment-db-data:/data/db
+    networks:
+      - order-network
+
+
+volumes:
+  order-db-data:
+  stock-db-data:
+  payment-db-data:

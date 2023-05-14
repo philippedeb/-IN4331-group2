@@ -27,7 +27,7 @@ spec:
     spec:
       containers:
         - name: order
-          image: order:latest
+          image: enriquebarba97/order-service:m1
           resources:
             limits:
               memory: "1Gi"
@@ -40,15 +40,9 @@ spec:
           ports:
             - containerPort: 5000
           env:
-            - name: USER_SERVICE_URL
-              value: "user-service"
-            - name: STOCK_SERVICE_URL
-              value: "stock-service"
-            - name: REDIS_HOST
-              value: redis-master
-            - name: REDIS_PORT
-              value: '6379'
-            - name: REDIS_PASSWORD
-              value: "redis"
-            - name: REDIS_DB
-              value: "0"
+            - name: PAYMENT_URL
+              value: "http://payment-service:5000"
+            - name: STOCK_URL
+              value: "http://stock-service:5000"
+            - name: DB_URL
+              value: mongodb://order-db:27017

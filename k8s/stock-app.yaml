@@ -27,7 +27,7 @@ spec:
     spec:
       containers:
         - name: stock
-          image: stock:latest
+          image: enriquebarba97/stock-service:m1
           resources:
             limits:
               memory: "1Gi"
@@ -40,11 +40,5 @@ spec:
           ports:
             - containerPort: 5000
           env:
-            - name: REDIS_HOST
-              value: redis-master
-            - name: REDIS_PORT
-              value: '6379'
-            - name: REDIS_PASSWORD
-              value: "redis"
-            - name: REDIS_DB
-              value: "0"
+            - name: DB_URL
+              value: mongodb://order-db:27017
