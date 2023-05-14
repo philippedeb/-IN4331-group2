@@ -17,6 +17,7 @@ client = MongoClient(mongo_url)
 db = client["wdm"]
 payments = db["payments"]
 
+
 def close_db_connection():
     client.close()
 
@@ -44,7 +45,8 @@ def find_user(user_id: str):
 @app.post('/add_funds/<user_id>/<amount>')
 def add_credit(user_id: str, amount: int):
     amount = int(amount)
-    result = payments.update_one({"_id": ObjectId(user_id)}, {"$inc": {"credit": amount}})
+    result = payments.update_one({"_id": ObjectId(user_id)}, {
+                                 "$inc": {"credit": amount}})
     if result.matched_count > 0:
         return jsonify({"Success": True}), 200
     else:
@@ -54,21 +56,24 @@ def add_credit(user_id: str, amount: int):
 @app.post('/pay/<user_id>/<order_id>/<amount>')
 def remove_credit(user_id: str, order_id: str, amount: int):
     amount = int(amount)
-    result = payments.update_one({"_id": ObjectId(user_id), "credit": {"$gte": amount}}, {"$inc": {"credit": -amount}})
+    result = payments.update_one({"_id": ObjectId(user_id), "credit": {
+                                 "$gte": amount}}, {"$inc": {"credit": -amount}})
     if result.matched_count > 0:
-        payments.update_one({"_id": ObjectId(user_id)}, {"$addToSet": {"paid_orders": order_id}})
+        payments.update_one({"_id": ObjectId(user_id)}, {
+                            "$addToSet": {"paid_orders": order_id}})
         return jsonify({"Success": True}), 200
     else:
         return jsonify({"Error": "Not enough credit or user not found"}), 400
 
 
-
 @app.post('/cancel/<user_id>/<order_id>/<amount>')
 def cancel_payment(user_id: str, order_id: str, amount: int):
-    user = payments.find_one({"_id": ObjectId(user_id), "paid_orders": order_id})
+    user = payments.find_one(
+        {"_id": ObjectId(user_id), "paid_orders": order_id})
     if user:
         amount = int(amount)
-        result = payments.update_one({"_id": ObjectId(user_id)}, {"$inc": {"credit": amount}, "$pull": {"paid_orders": order_id}})
+        result = payments.update_one({"_id": ObjectId(user_id)}, {
+                                     "$inc": {"credit": amount}, "$pull": {"paid_orders": order_id}})
         return jsonify({"Success": True}), 200
     else:
         return jsonify({"Error": "Payment not found"}), 404

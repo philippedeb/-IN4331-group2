@@ -20,8 +20,10 @@ client = MongoClient(mongo_url)
 db = client["wdm"]
 orders = db["orders"]
 
+
 def close_db_connection():
     client.close()
+
 
 def close_db_connection():
     db.close()
@@ -48,7 +50,8 @@ def remove_order(order_id):
 
 @app.post('/addItem/<order_id>/<item_id>')
 def add_item(order_id, item_id):
-    result = orders.update_one({"_id": ObjectId(order_id)}, {"$addToSet": {"items": item_id}})
+    result = orders.update_one({"_id": ObjectId(order_id)}, {
+                               "$addToSet": {"items": item_id}})
     if result.matched_count > 0:
         return jsonify({"Success": True}), 200
     else:
@@ -57,7 +60,8 @@ def add_item(order_id, item_id):
 
 @app.delete('/removeItem/<order_id>/<item_id>')
 def remove_item(order_id, item_id):
-    result = orders.update_one({"_id": ObjectId(order_id)}, {"$pull": {"items": item_id}})
+    result = orders.update_one({"_id": ObjectId(order_id)}, {
+                               "$pull": {"items": item_id}})
     if result.matched_count > 0:
         return jsonify({"Success": True}), 200
     else:
@@ -78,7 +82,7 @@ def find_order(order_id):
         return jsonify(order), 200
     else:
         return jsonify({"Error": "Order not found"}), 404
-    
+
 
 @app.post('/checkout/<order_id>')
 def checkout(order_id):
@@ -93,10 +97,12 @@ def checkout(order_id):
             total_cost += int(item["price"])
 
             # One saga step for each item to update
-            saga.add_step(f"Decrease {item_id}", decrease_stock_action(item_id), decrease_stock_compensation(item_id))
+            saga.add_step(f"Decrease {item_id}", decrease_stock_action(
+                item_id), decrease_stock_compensation(item_id))
 
         # One saga step for payment
-        saga.add_step(f"Payment user {user_id}: {total_cost}", payment_action(user_id, order_id, total_cost), payment_compensation(user_id, order_id, total_cost))
+        saga.add_step(f"Payment user {user_id}: {total_cost}", payment_action(
+            user_id, order_id, total_cost), payment_compensation(user_id, order_id, total_cost))
 
         asyncio.run(saga.run())
 
@@ -120,6 +126,7 @@ def decrease_stock_action(item_id):
         return True
     return func
 
+
 def decrease_stock_compensation(item_id):
     """Return coroutine function that compensates the decrease_stock (increases stock of item with given id by 1)"""
     async def func():
@@ -129,19 +136,23 @@ def decrease_stock_compensation(item_id):
         return True
     return func
 
+
 def payment_action(user_id, order_id, total_cost):
     """Return coroutine function to deduct payment from user_id with total_cost, associated with order_id"""
     async def func():
-        response = requests.post(f"{gateway_url}/payment/pay/{user_id}/{order_id}/{total_cost}")
+        response = requests.post(
+            f"{gateway_url}/payment/pay/{user_id}/{order_id}/{total_cost}")
         if response.status_code != 200:
             return False
         return True
     return func
 
+
 def payment_compensation(user_id, order_id, total_cost):
     """Return coroutine function to compensate payment (add total_cost to user_i, associated with order_id"""
     async def func():
-        response = requests.post(f"{gateway_url}/payment/cancel/{user_id}/{order_id}/{total_cost}")
+        response = requests.post(
+            f"{gateway_url}/payment/cancel/{user_id}/{order_id}/{total_cost}")
         if response.status_code != 200:
             return False
         return True
