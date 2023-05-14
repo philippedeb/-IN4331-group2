@@ -27,7 +27,7 @@ spec:
     spec:
       containers:
         - name: stock
-          image: philippedeb/wdm:stock
+          image: enriquebarba97/stock-service:m1
           resources:
             limits:
               memory: "1Gi"

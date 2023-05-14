@@ -26,10 +26,6 @@ def close_db_connection():
     client.close()
 
 
-def close_db_connection():
-    db.close()
-
-
 atexit.register(close_db_connection)
 
 
@@ -75,9 +71,11 @@ def find_order(order_id):
     if order:
         order["_id"] = str(order["_id"])
         items = order["items"]
+        app.logger.error(items)
         total_cost = 0
         for item_id in items:
             item = requests.get(f"{stock_url}/find/{item_id}").json()
+            app.logger.error(item)
             total_cost += int(item["price"])
         order["total_cost"] = total_cost
         return jsonify(order), 200
