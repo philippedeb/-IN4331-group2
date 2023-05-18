@@ -22,6 +22,10 @@ def close_db_connection():
 atexit.register(close_db_connection)
 
 
+@app.get('/')
+def index():
+    return "Health check", 200
+
 @app.post('/item/create/<price>')
 def create_item(price: int):
     document = {"price": price, "stock": 0}

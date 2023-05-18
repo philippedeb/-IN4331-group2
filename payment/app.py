@@ -22,6 +22,10 @@ def close_db_connection():
 atexit.register(close_db_connection)
 
 
+@app.get('/')
+def index():
+    return "Health check", 200
+
 @app.post('/create_user')
 def create_user():
     new_user = {"credit": 0}
@@ -40,8 +44,8 @@ def find_user(user_id: str):
 
 
 @app.post('/add_funds/<user_id>/<amount>')
-def add_credit(user_id: str, amount: int):
-    amount = int(amount)
+def add_credit(user_id: str, amount: float):
+    amount = float(amount)
     result = payments.update_one({"_id": ObjectId(user_id)}, {
                                  "$inc": {"credit": amount}})
     if result.matched_count > 0:
@@ -51,8 +55,8 @@ def add_credit(user_id: str, amount: int):
 
 
 @app.post('/pay/<user_id>/<order_id>/<amount>')
-def remove_credit(user_id: str, order_id: str, amount: int):
-    amount = int(amount)
+def remove_credit(user_id: str, order_id: str, amount: float):
+    amount = float(amount)
     result = payments.update_one({"_id": ObjectId(user_id), "credit": {
                                  "$gte": amount}}, {"$inc": {"credit": -amount}})
     if result.matched_count > 0:
@@ -64,11 +68,11 @@ def remove_credit(user_id: str, order_id: str, amount: int):
 
 
 @app.post('/cancel/<user_id>/<order_id>/<amount>')
-def cancel_payment(user_id: str, order_id: str, amount: int):
+def cancel_payment(user_id: str, order_id: str, amount: float):
     user = payments.find_one(
         {"_id": ObjectId(user_id), "paid_orders": order_id})
     if user:
-        amount = int(amount)
+        amount = float(amount)
         result = payments.update_one({"_id": ObjectId(user_id)}, {
                                      "$inc": {"credit": amount}, "$pull": {"paid_orders": order_id}})
         return jsonify({"Success": True}), 200

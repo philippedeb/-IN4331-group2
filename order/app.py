@@ -28,6 +28,10 @@ def close_db_connection():
 
 atexit.register(close_db_connection)
 
+@app.get('/')
+def index():
+    return "Health check", 200
+
 
 @app.post('/create/<user_id>')
 def create_order(user_id):
@@ -76,7 +80,7 @@ def find_order(order_id):
         for item_id in items:
             item = requests.get(f"{stock_url}/find/{item_id}").json()
             app.logger.error(item)
-            total_cost += int(item["price"])
+            total_cost += float(item["price"])
         order["total_cost"] = total_cost
         return jsonify(order), 200
     else:
@@ -93,7 +97,7 @@ def checkout(order_id):
 
         for item_id in order["items"]:
             item = requests.get(f"{stock_url}/find/{item_id}").json()
-            total_cost += int(item["price"])
+            total_cost += float(item["price"])
 
             # One saga step for each item to update
             saga.add_step(f"Decrease {item_id}", decrease_stock_action(
