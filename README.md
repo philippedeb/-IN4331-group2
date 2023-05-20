@@ -1,4 +1,17 @@
-# Web-scale Data Management Project Template
+# Web-scale Data Management Project
+Developed by IN4331 Group 2, containing the following members:
+* Enrique Barba Roque
+* Philippe de Bekker
+* Jokubas de Kort
+* Arjan Hasami
+* Simcha Vos
+
+#### Repository Status
+[![Latest Tag](https://img.shields.io/github/tag/philippedeb/IN4331-group2.svg)](https://github.com/philippedeb/IN4331-group2/tags) [![Latest Commit](https://img.shields.io/github/last-commit/philippedeb/IN4331-group2.svg)](https://github.com/philippedeb/IN4331-group2/commits/main)
+
+> Note: This repository is a fork of the [wdm-project-template](https://github.com/delftdata/wdm-project-template).
+
+## Project description
 
 Basic project structure with Python's Flask and Redis.
 **You are free to use any web framework in any language and any database you like for this project.**
