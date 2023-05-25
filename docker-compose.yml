@@ -2,6 +2,17 @@ version: "3"
 networks:
   order-network:
 services:
+  rabbitmq:
+    image: rabbitmq:latest
+    ports:
+      - "5672:5672"
+    networks:
+      - order-network
+    healthcheck:
+      test: [ "CMD", "rabbitmqctl", "ping" ]
+      interval: 5s
+      timeout: 30s
+      retries: 3
 
   gateway:
     image: nginx:latest
@@ -20,6 +31,7 @@ services:
     build: ./order
     image: enriquebarba97/order-service:m1
     command: gunicorn -b 0.0.0.0:5000 app:app -w 1 --timeout 10
+    restart: on-failure
     environment:
       - STOCK_URL=http://stock-service:5000
       - PAYMENT_URL=http://payment-service:5000
@@ -27,6 +39,7 @@ services:
       - env/order_mongo.env
     depends_on:
       - order-db
+      - rabbitmq
     networks:
       - order-network
 
@@ -44,10 +57,12 @@ services:
     build: ./stock
     image: enriquebarba97/stock-service:m1
     command: gunicorn -b 0.0.0.0:5000 app:app -w 1 --timeout 10
+    restart: on-failure
     env_file:
       - env/stock_mongo.env
     depends_on:
       - stock-db
+      - rabbitmq
     networks:
       - order-network
 
@@ -65,10 +80,12 @@ services:
     build: ./payment
     image: enriquebarba97/payment-service:m1
     command: gunicorn -b 0.0.0.0:5000 app:app -w 1 --timeout 10
+    restart: on-failure
     env_file:
       - env/payment_mongo.env
     depends_on:
       - payment-db
+      - rabbitmq
     networks:
       - order-network
 

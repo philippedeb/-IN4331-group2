@@ -1,10 +1,11 @@
+import json
 import os
 import atexit
 
 from bson import ObjectId
 from flask import Flask, jsonify
 from pymongo import MongoClient
-
+import pika
 
 app = Flask("stock-service")
 
@@ -13,6 +14,12 @@ mongo_url = os.environ['DB_URL']
 client = MongoClient(mongo_url)
 db = client["wdm"]
 stock = db["stock"]
+order_conn = pika.BlockingConnection(pika.ConnectionParameters(host='in4331-group2_rabbitmq_1', port=5672))
+order_channel = order_conn.channel()
+order_channel.exchange_declare(exchange='return', exchange_type='fanout')
+result = order_channel.queue_declare(queue='', exclusive=True)
+queue_name = result.method.queue
+order_channel.queue_bind(exchange='return', queue=queue_name)
 
 
 def close_db_connection():
@@ -25,6 +32,7 @@ atexit.register(close_db_connection)
 @app.get('/')
 def index():
     return "Health check", 200
+
 
 @app.post('/item/create/<price>')
 def create_item(price: int):
@@ -51,7 +59,7 @@ def add_stock(item_id: str, amount: int):
     try:
         amount = int(amount)
         result = stock.update_one({"_id": ObjectId(item_id)}, {
-                                  "$inc": {"stock": amount}})
+            "$inc": {"stock": amount}})
         if result.matched_count > 0:
             return jsonify({"Success": True}), 200
         else:
@@ -60,15 +68,23 @@ def add_stock(item_id: str, amount: int):
         return jsonify({"Error": str(e)}), 400
 
 
-@app.post('/subtract/<item_id>/<amount>')
 def remove_stock(item_id: str, amount: int):
     try:
         amount = int(amount)
         result = stock.update_one({"_id": ObjectId(item_id), "stock": {
-                                  "$gte": amount}}, {"$inc": {"stock": -amount}})
+            "$gte": amount}}, {"$inc": {"stock": -amount}})
         if result.matched_count > 0:
             return jsonify({"Success": True}), 200
         else:
             return jsonify({"Error": "Item not found or not enough stock"}), 400
     except Exception as e:
         return jsonify({"Error": str(e)}), 400
+
+
+def callback(ch, method, properties, body):
+    json_body = json.loads(body)
+    remove_stock(json_body['item_id'], json_body['amount'])
+
+
+order_channel.basic_consume(
+    queue=queue_name, on_message_callback=callback, auto_ack=True)

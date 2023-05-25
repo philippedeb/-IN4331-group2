@@ -4,15 +4,20 @@ import atexit
 from bson import ObjectId
 from flask import Flask, jsonify
 from pymongo import MongoClient
+import json
+import pika
 import requests
 
 from saga import Saga, State
 import asyncio
 
-
 payment_url = os.environ['PAYMENT_URL']
 stock_url = os.environ['STOCK_URL']
-
+payment_conn = pika.BlockingConnection(pika.ConnectionParameters(host='in4331-group2_rabbitmq_1', port=5672))
+stock_conn = pika.BlockingConnection(pika.ConnectionParameters(host='in4331-group2_rabbitmq_1', port=5672))
+payment_channel = payment_conn.channel()
+stock_channel = stock_conn.channel()
+stock_channel.exchange_declare(exchange='add', exchange_type='fanout')
 app = Flask("order-service")
 
 mongo_url = os.environ['DB_URL']
@@ -27,6 +32,7 @@ def close_db_connection():
 
 
 atexit.register(close_db_connection)
+
 
 @app.get('/')
 def index():
@@ -52,7 +58,7 @@ def remove_order(order_id):
 @app.post('/addItem/<order_id>/<item_id>')
 def add_item(order_id, item_id):
     result = orders.update_one({"_id": ObjectId(order_id)}, {
-                               "$addToSet": {"items": item_id}})
+        "$addToSet": {"items": item_id}})
     if result.matched_count > 0:
         return jsonify({"Success": True}), 200
     else:
@@ -62,7 +68,7 @@ def add_item(order_id, item_id):
 @app.delete('/removeItem/<order_id>/<item_id>')
 def remove_item(order_id, item_id):
     result = orders.update_one({"_id": ObjectId(order_id)}, {
-                               "$pull": {"items": item_id}})
+        "$pull": {"items": item_id}})
     if result.matched_count > 0:
         return jsonify({"Success": True}), 200
     else:
@@ -117,7 +123,7 @@ def checkout(order_id):
             for step in saga.steps:
                 error[step.name] = step.state.name
                 app.logger.error(f"Step {step.name}: {step.state}")
-            
+
             return jsonify({"Error": error}), 400
 
     else:
@@ -126,41 +132,35 @@ def checkout(order_id):
 
 def decrease_stock_action(item_id):
     """Return coroutine function that decreases stock of item with given id by 1"""
-    async def func():
-        response = requests.post(f"{stock_url}/subtract/{item_id}/{1}")
-        if response.status_code != 200:
-            return False
-        return True
-    return func
+    # stock_channel.basic_publish(exchange='remove', routing_key='', body=item_id)
 
 
 def decrease_stock_compensation(item_id):
     """Return coroutine function that compensates the decrease_stock (increases stock of item with given id by 1)"""
-    async def func():
-        response = requests.post(f"{stock_url}/add/{item_id}/{1}")
-        if response.status_code != 200:
-            return False
-        return True
-    return func
+    # stock_channel.basic_publish(exchange='add', routing_key='', body=item_id)
 
 
 def payment_action(user_id, order_id, total_cost):
     """Return coroutine function to deduct payment from user_id with total_cost, associated with order_id"""
+
     async def func():
         response = requests.post(
             f"{payment_url}/pay/{user_id}/{order_id}/{total_cost}")
         if response.status_code != 200:
             return False
         return True
+
     return func
 
 
 def payment_compensation(user_id, order_id, total_cost):
     """Return coroutine function to compensate payment (add total_cost to user_i, associated with order_id"""
+
     async def func():
         response = requests.post(
             f"{payment_url}/cancel/{user_id}/{order_id}/{total_cost}")
         if response.status_code != 200:
             return False
         return True
+
     return func
