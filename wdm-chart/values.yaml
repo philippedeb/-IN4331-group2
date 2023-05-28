@@ -1,0 +1,10 @@
+ordersharded:
+  auth:
+    rootPassword: password
+  enabled: true
+
+stocksharded:
+  enabled: false
+
+paymentsharded:
+  enabled: false

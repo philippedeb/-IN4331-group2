@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: order-service
+spec:
+  type: ClusterIP
+  selector:
+    component: order
+  ports:
+    - port: 5000
+      name: http
+      targetPort: 5000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: order
+  template:
+    metadata:
+      labels:
+        component: order
+    spec:
+      containers:
+        - name: order
+          image: enriquebarba97/order-service:latest
+          resources:
+            limits:
+              memory: "1Gi"
+              cpu: "1"
+            requests:
+              memory: "1Gi"
+              cpu: "1"
+          command: ["gunicorn"]
+          args: ["-b", "0.0.0.0:5000", "app:app"]
+          ports:
+            - containerPort: 5000
+          env:
+            - name: PAYMENT_URL
+              value: "http://payment-service:5000"
+            - name: STOCK_URL
+              value: "http://stock-service:5000"
+            - name: DB_URL
+              {{ if .Values.ordersharded.enabled}}
+              value: mongodb://root:{{.Values.ordersharded.auth.rootPassword}}@{{.Release.Name}}-ordersharded:27017
+              {{ else }}
+              value: mongodb://order-db:27017
+              {{ end }}
