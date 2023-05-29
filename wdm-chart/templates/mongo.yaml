@@ -26,6 +26,7 @@ spec:
             claimName: order-pvc
 ---
 {{end}}
+{{if not .Values.stocksharded.enabled}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -52,6 +53,8 @@ spec:
           persistentVolumeClaim:
             claimName: stock-pvc
 ---
+{{end}}
+{{if not .Values.paymentsharded.enabled}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -77,3 +80,4 @@ spec:
         - name: storage
           persistentVolumeClaim:
             claimName: payment-pvc
+{{end}}

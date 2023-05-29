@@ -27,7 +27,7 @@ spec:
     spec:
       containers:
         - name: payment
-          image: enriquebarba97/payment-service:m1
+          image: enriquebarba97/payment-service:latest
           resources:
             limits:
               memory: "1Gi"
@@ -41,6 +41,6 @@ spec:
             - containerPort: 5000
           env:
             - name: DB_URL
-              value: mongodb://order-db:27017
+              value: mongodb://payment-db:27017
             - name: GATEWAY_URL
               value: "http://ingress-service"

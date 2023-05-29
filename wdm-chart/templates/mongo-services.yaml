@@ -1,3 +1,4 @@
+{{if not .Values.ordersharded.enabled}}
 apiVersion: v1
 kind: Service
 metadata:
@@ -9,6 +10,8 @@ spec:
     - port: 27017
       targetPort: 27017
 ---
+{{end}}
+{{if not .Values.stocksharded.enabled}}
 apiVersion: v1
 kind: Service
 metadata:
@@ -20,6 +23,8 @@ spec:
     - port: 27017
       targetPort: 27017
 ---
+{{end}}
+{{if not .Values.paymentsharded.enabled}}
 apiVersion: v1
 kind: Service
 metadata:
@@ -30,3 +35,4 @@ spec:
   ports:
     - port: 27017
       targetPort: 27017
+{{end}}

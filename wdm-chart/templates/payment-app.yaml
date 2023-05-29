@@ -41,6 +41,10 @@ spec:
             - containerPort: 5000
           env:
             - name: DB_URL
+              {{ if .Values.paymentsharded.enabled}}
+              value: mongodb://root:{{.Values.paymentsharded.auth.rootPassword}}@{{.Release.Name}}-paymentsharded:27017
+              {{ else }}
               value: mongodb://payment-db:27017
+              {{ end }}
             - name: GATEWAY_URL
               value: "http://ingress-service"

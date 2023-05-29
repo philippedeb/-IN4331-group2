@@ -1,8 +1,5 @@
 # Web-scale Data Management Project Template
 
-Basic project structure with Python's Flask and Redis.
-**You are free to use any web framework in any language and any database you like for this project.**
-
 ## Project structure
 
 - `env`
@@ -22,7 +19,24 @@ Basic project structure with Python's Flask and Redis.
 - `test`
   Folder containing some basic correctness tests for the entire system. (Feel free to enhance them)
 
+- `wdm-chart`
+  Folder containing a Helm Chart that deploys the full app stack (databases + microservices)
+
 ## Deployment types:
+
+### Helm Chart
+To deploy using the provided Helm chart, first add the Bitnami repo to your Helm installation:
+
+```console
+helm repo add bitnami https://charts.bitnami.com/bitnami
+```
+
+Then, open a terminal in the `wdm-chart` folder. You can modify the parameters in the values.yaml file as you see fit. Then run
+
+ ```console
+helm dependency build
+helm install [RELEASE] .
+```
 
 ### docker-compose (local development)
 

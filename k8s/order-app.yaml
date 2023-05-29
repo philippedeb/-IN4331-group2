@@ -27,7 +27,8 @@ spec:
     spec:
       containers:
         - name: order
-          image: enriquebarba97/order-service:m1
+          image: enriquebarba97/order-service:latest
+          imagePullPolicy: Always
           resources:
             limits:
               memory: "1Gi"

@@ -41,4 +41,8 @@ spec:
             - containerPort: 5000
           env:
             - name: DB_URL
+              {{ if .Values.stocksharded.enabled}}
+              value: mongodb://root:{{.Values.stocksharded.auth.rootPassword}}@{{.Release.Name}}-stocksharded:27017
+              {{ else }}
               value: mongodb://stock-db:27017
+              {{ end }}

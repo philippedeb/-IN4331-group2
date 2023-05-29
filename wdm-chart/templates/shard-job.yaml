@@ -2,7 +2,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: setup-shards
+  name: setup-shards-orders
 spec:
   template:
     spec:
@@ -29,5 +29,73 @@ spec:
           configMap:
             name: shard-init-configmap
             defaultMode: 0500
-      restartPolicy: Never
+      restartPolicy: OnFailure
+---
+{{ end }}
+{{ if .Values.stocksharded.enabled}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: setup-shards-stock
+spec:
+  template:
+    spec:
+      containers:
+        - name: mongosh
+          image: mongo:6.0.6
+          command:
+            - "mongosh"
+          args: ["--host", "$(MONGOS_HOST)", "--port", "$(MONGOS_PORT)","-u", "root","-p", "$(MONGOS_PASS)", "--file", "/script/init.js"]
+          volumeMounts:
+            - name: script
+              mountPath: "/script"
+          env:
+            - name: MONGOS_PORT
+              value: "27017"
+            - name: MONGOS_HOST
+              value: {{.Release.Name}}-stocksharded
+            - name: MONGOS_PASS
+              value: "{{ .Values.stocksharded.auth.rootPassword }}"
+            - name: COLLECTION
+              value: "stock"
+      volumes:
+        - name: script
+          configMap:
+            name: shard-init-configmap
+            defaultMode: 0500
+      restartPolicy: OnFailure
+---
+{{ end }}
+{{ if .Values.paymentsharded.enabled}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: setup-shards-payment
+spec:
+  template:
+    spec:
+      containers:
+        - name: mongosh
+          image: mongo:6.0.6
+          command:
+            - "mongosh"
+          args: ["--host", "$(MONGOS_HOST)", "--port", "$(MONGOS_PORT)","-u", "root","-p", "$(MONGOS_PASS)", "--file", "/script/init.js"]
+          volumeMounts:
+            - name: script
+              mountPath: "/script"
+          env:
+            - name: MONGOS_PORT
+              value: "27017"
+            - name: MONGOS_HOST
+              value: {{.Release.Name}}-paymentsharded
+            - name: MONGOS_PASS
+              value: "{{ .Values.paymentsharded.auth.rootPassword }}"
+            - name: COLLECTION
+              value: "payments"
+      volumes:
+        - name: script
+          configMap:
+            name: shard-init-configmap
+            defaultMode: 0500
+      restartPolicy: OnFailure
 {{ end }}

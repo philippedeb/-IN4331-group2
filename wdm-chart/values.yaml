@@ -1,10 +1,32 @@
 ordersharded:
-  auth:
-    rootPassword: password
+  # Enable sharding for mongo orders database
+  # If disabled, the database will be created as a single node
   enabled: true
 
+  # Number of shards to create for mongo
+  shards: 2
+
+  auth:
+    rootPassword: password
+
 stocksharded:
-  enabled: false
+  # Enable sharding for mongo stock database
+  # If disabled, the database will be created as a single node
+  enabled: true
+
+  # Number of shards to create for mongo
+  shards: 2
+
+  auth:
+    rootPassword: password
 
 paymentsharded:
-  enabled: false
+  # Enable sharding for mongo payment database
+  # If disabled, the database will be created as a single node
+  enabled: true
+
+  # Number of shards to create for mongo
+  shards: 2
+
+  auth:
+    rootPassword: password
