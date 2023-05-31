@@ -70,12 +70,6 @@ Some details about the different components of the project.
 
 #### Horizontal Pod Autoscaling (HPA)
 
-- Install the Metrics Server for HPA to work:
-
-  ```console
-  kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
-  ```
-
 - Verify HPA status:
 
   ```console
