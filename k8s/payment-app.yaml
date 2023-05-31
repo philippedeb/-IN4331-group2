@@ -16,7 +16,7 @@ kind: Deployment
 metadata:
   name: payment-deployment
 spec:
-  replicas: 1
+  replicas: 3
   selector:
     matchLabels:
       component: payment
