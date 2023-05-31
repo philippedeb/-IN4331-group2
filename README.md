@@ -25,6 +25,7 @@
 ## Deployment types:
 
 ### Helm Chart
+
 To deploy using the provided Helm chart, first add the Bitnami repo to your Helm installation:
 
 ```console
@@ -33,7 +34,7 @@ helm repo add bitnami https://charts.bitnami.com/bitnami
 
 Then, open a terminal in the `wdm-chart` folder. You can modify the parameters in the values.yaml file as you see fit. Then run
 
- ```console
+```console
 helm dependency build
 helm install [RELEASE] .
 ```
@@ -62,3 +63,26 @@ but you can find any database you want in https://artifacthub.io/ and adapt the 
 Similarly to the `minikube` deployment but run the `deploy-charts-cluster.sh` in the helm step to also install an ingress to the cluster.
 
 **_Requirements:_** You need to have access to kubectl of a k8s cluster.
+
+## Guides
+
+Some details about the different components of the project.
+
+#### Horizontal Pod Autoscaling (HPA)
+
+- Install the Metrics Server for HPA to work:
+
+  ```console
+  kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+  ```
+
+- Verify HPA status:
+
+  ```console
+  kubectl get hpa
+  ```
+
+- Make sure the metrics server is running:
+  ```console
+  kubectl get deployment metrics-server -n kube-system
+  ```
