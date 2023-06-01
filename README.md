@@ -52,7 +52,7 @@ Enter the database URL and password in the .env files for each corresponding ser
 This setup is for local k8s testing to see if your k8s config works before deploying to the cloud.
 First deploy your database using helm by running the `deploy-charts-minikube.sh` file (in this example the DB is Redis
 but you can find any database you want in https://artifacthub.io/ and adapt the script). Then adapt the k8s configuration files in the
-`\k8s` folder to match your system and then run `kubectl apply -f .` in the k8s folder.
+`\k8s` folder to match your system and then run `kubectl apply -f .` in the k8s folder. Then run minikube tunnel to expose the services on port 80.
 
 **_Requirements:_** You need to have minikube (with Ingress enabled) and helm installed on your machine.
 
@@ -61,3 +61,44 @@ but you can find any database you want in https://artifacthub.io/ and adapt the 
 Similarly to the `minikube` deployment but run the `deploy-charts-cluster.sh` in the helm step to also install an ingress to the cluster.
 
 **_Requirements:_** You need to have access to kubectl of a k8s cluster.
+
+## Testing
+### Setup 
+* Install python 3.8 or greater (tested with 3.11)
+* Install the required packages using: `pip install -r requirements.txt`
+````
+Note: For Windows users you might also need to install pywin32
+````
+
+### Running Stress Test
+* Open terminal and navigate to the `locustfile.py` folder
+* Run script: `locust -f locustfile.py --host="localhost"`
+* Go to `http://localhost:8089/`
+
+
+### Stress Test Kubernetes 
+
+The tasks are the same as the `stress-test` and can be found in `stress-test-k8s/docker-image/locust-tasks`.
+This folder is adapted from Google's [Distributed load testing using Google Kubernetes Engine](https://cloud.google.com/architecture/distributed-load-testing-using-gke)
+and original repo is [here](https://github.com/GoogleCloudPlatform/distributed-load-testing-using-kubernetes). 
+Detailed instructions are in Google's blog post.
+If you want to deploy locally or with a different cloud provider the lines that you have to change are:
+1) In `stress-test-k8s/kubernetes-config/locust-master-controller.yaml` line 34 you could add a dockerHub image that you
+published yourself and in line 39 set `TARGET_HOST` to the IP of your API gateway. 
+2) Change the same configuration parameters in the `stress-test-k8s/kubernetes-config/locust-worker-controller.yaml`
+
+
+### Running Consistency Test
+* Run script `run_consistency_test.py`
+
+In the provided consistency test we first populate the databases with 100 items with 1 stock that costs 1 credit 
+and 1000 users that have 1 credit. 
+
+Then we concurrently send 1000 checkouts of 1 item with random user/item combinations.
+If everything goes well only 10% of the checkouts will succeed, and the expected state should be 0 stock across all 
+items and 100 credits subtracted across different users.  
+
+Finally, the measurements are done in two phases:
+1) Using logs to see whether the service sent the correct message to the clients
+2) Querying the database to see if the actual state remained consistent
+
