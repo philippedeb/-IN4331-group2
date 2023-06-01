@@ -1,0 +1,107 @@
+version: "3"
+networks:
+  order-network:
+services:
+
+  # order-service:
+  #   build: ./order
+  #   image: enriquebarba97/order-service:fastapi
+  #   command: uvicorn --host 0.0.0.0 --port 5000 app:app --workers 3
+  #   environment:
+  #     - STOCK_URL=http://stock-service:5000
+  #     - PAYMENT_URL=http://payment-service:5000
+  #   env_file:
+  #     - env/order_mongo.env
+  #   depends_on:
+  #     - order-db
+  #   networks:
+  #     - order-network
+
+  # order-db:
+  #   image: mongo
+  #   restart: always
+  #   volumes:
+  #     - order-db-data:/data/db
+  #   ports:
+  #     - "27017:27017"
+  #   networks:
+  #     - order-network
+
+  stock-service:
+    build: ./
+    image: enriquebarba97/wdm-reactive:latest
+    command: celery -A stock.tasks worker --loglevel=info --concurrency=2
+    env_file:
+      - env/stock_mongo.env
+      - env/brokers.env
+    depends_on:
+      - stock-db
+      - stock-rabbit
+    networks:
+      - order-network
+
+  stock-db:
+    image: mongo
+    restart: always
+    ports:
+      - "27018:27017"
+    volumes:
+      - stock-db-data:/data/db
+    networks:
+      - order-network
+
+  payment-service:
+    build: ./
+    image: enriquebarba97/wdm-reactive:latest
+    command: celery -A payment.tasks worker --loglevel=info --concurrency=2
+    env_file:
+      - env/payment_mongo.env
+      - env/brokers.env
+    depends_on:
+      - payment-db
+      - payment-rabbit
+    networks:
+      - order-network
+
+
+  payment-db:
+    image: mongo
+    restart: always
+    ports:
+      - "27019:27017"
+    volumes:
+      - payment-db-data:/data/db
+    networks:
+      - order-network
+
+  gateway:
+    build: ./
+    image: enriquebarba97/wdm-reactive:latest
+    command: uvicorn --host 0.0.0.0 --port 5000 gateway.app:app --workers 3
+    env_file:
+      - env/brokers.env
+    ports:
+      - "5000:5000"
+    networks:
+      - order-network
+  
+  payment-rabbit:
+    image: rabbitmq:latest
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=mypass
+    networks:
+      - order-network
+  
+  stock-rabbit:
+    image: rabbitmq:latest
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=mypass
+    networks:
+      - order-network
+
+volumes:
+  order-db-data:
+  stock-db-data:
+  payment-db-data:
