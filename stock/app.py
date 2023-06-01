@@ -14,12 +14,11 @@ mongo_url = os.environ['DB_URL']
 client = MongoClient(mongo_url)
 db = client["wdm"]
 stock = db["stock"]
-order_conn = pika.BlockingConnection(pika.ConnectionParameters(host='in4331-group2_rabbitmq_1', port=5672))
-order_channel = order_conn.channel()
-order_channel.exchange_declare(exchange='return', exchange_type='fanout')
-result = order_channel.queue_declare(queue='', exclusive=True)
-queue_name = result.method.queue
-order_channel.queue_bind(exchange='return', queue=queue_name)
+
+connection = pika.BlockingConnection(pika.ConnectionParameters(host='in4331-group2_rabbitmq_1', port=5672, heartbeat=30))
+channel = connection.channel()
+# Create a queue for receiving responses from the stock and payment services
+queue = channel.queue_declare(queue='stock').method.queue
 
 
 def close_db_connection():
@@ -83,8 +82,13 @@ def remove_stock(item_id: str, amount: int):
 
 def callback(ch, method, properties, body):
     json_body = json.loads(body)
-    remove_stock(json_body['item_id'], json_body['amount'])
+
+    message_type = properties.headers.get('message_type')
+    if message_type == 'decrease_stock_action':
+        remove_stock(json_body['item_id'], json_body['amount'])
+    elif message_type == 'decrease_stock_compensation':
+        remove_stock(json_body['item_id'], - json_body['amount'])
 
 
-order_channel.basic_consume(
-    queue=queue_name, on_message_callback=callback, auto_ack=True)
+channel.basic_consume(
+    queue=queue, on_message_callback=callback, auto_ack=True)

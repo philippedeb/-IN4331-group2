@@ -13,12 +13,17 @@ import asyncio
 
 payment_url = os.environ['PAYMENT_URL']
 stock_url = os.environ['STOCK_URL']
-payment_conn = pika.BlockingConnection(pika.ConnectionParameters(host='in4331-group2_rabbitmq_1', port=5672))
-stock_conn = pika.BlockingConnection(pika.ConnectionParameters(host='in4331-group2_rabbitmq_1', port=5672))
-payment_channel = payment_conn.channel()
-stock_channel = stock_conn.channel()
-stock_channel.exchange_declare(exchange='add', exchange_type='fanout')
+connection = pika.BlockingConnection(pika.ConnectionParameters(host='in4331-group2_rabbitmq_1', port=5672, heartbeat=30))
+channel = connection.channel()
+# Create a queue for receiving responses from the stock and payment services
+stock_queue = channel.queue_declare(queue='stock').method.queue
+payment_queue = channel.queue_declare(queue='payment').method.queue
+# stock_queue_name = stock_queue.method.queue
+# payment_queue_name = payment_queue.method.queue
+
 app = Flask("order-service")
+# Dictionary to store the status of ongoing orders
+order_statuses = {}
 
 mongo_url = os.environ['DB_URL']
 
@@ -32,6 +37,19 @@ def close_db_connection():
 
 
 atexit.register(close_db_connection)
+
+
+# Consume messages from the result queue
+def callback(ch, method, properties, body):
+    print(body)
+    print(properties)
+    response = body.decode()
+    order_id = properties.correlation_id
+
+    # Update the order status with the response
+    order_status = order_statuses.get(order_id, {})
+    order_status[properties.reply_to] = response
+    order_statuses[order_id] = order_status
 
 
 @app.get('/')
@@ -95,6 +113,10 @@ def find_order(order_id):
 
 @app.post('/checkout/<order_id>')
 def checkout(order_id):
+    if order_id in order_statuses:
+        return jsonify({"Status": "Pending"}), 202
+    order_statuses[order_id] = 'pending'
+
     order = orders.find_one({"_id": ObjectId(order_id)})
     if order:
         user_id = order["user_id"]
@@ -114,30 +136,42 @@ def checkout(order_id):
             user_id, order_id, total_cost), payment_compensation(user_id, order_id, total_cost))
 
         asyncio.run(saga.run())
-
-        if saga.state == State.SUCCESS:
-            return jsonify({"Success": True}), 200
-        else:
-
-            error = {}
-            for step in saga.steps:
-                error[step.name] = step.state.name
-                app.logger.error(f"Step {step.name}: {step.state}")
-
-            return jsonify({"Error": error}), 400
-
+        return jsonify({"Status": "Pending"}), 202
+    #     if saga.state == State.SUCCESS:
+    #         return jsonify({"Success": True}), 200
+    #     else:
+    #
+    #         error = {}
+    #         for step in saga.steps:
+    #             error[step.name] = step.state.name
+    #             app.logger.error(f"Step {step.name}: {step.state}")
+    #
+    #         return jsonify({"Error": error}), 400
+    #
     else:
         return jsonify({"Error": "Order not found"}), 404
 
 
 def decrease_stock_action(item_id):
     """Return coroutine function that decreases stock of item with given id by 1"""
-    # stock_channel.basic_publish(exchange='remove', routing_key='', body=item_id)
+    properties = pika.BasicProperties(
+        content_type='text/plain',
+        reply_to=stock_queue,
+        # correlation_id=order_id,
+        headers={'message_type': 'decrease_stock_action'}
+    )
+    channel.basic_publish(exchange='', properties=properties, routing_key='stock_queue', body=item_id)
 
 
 def decrease_stock_compensation(item_id):
     """Return coroutine function that compensates the decrease_stock (increases stock of item with given id by 1)"""
-    # stock_channel.basic_publish(exchange='add', routing_key='', body=item_id)
+    properties = pika.BasicProperties(
+        content_type='text/plain',
+        reply_to=stock_queue,
+        # correlation_id=order_id,
+        headers={'message_type': 'decrease_stock_compensation'}
+    )
+    channel.basic_publish(exchange='', properties=properties, routing_key='stock_queue', body=item_id)
 
 
 def payment_action(user_id, order_id, total_cost):
@@ -164,3 +198,8 @@ def payment_compensation(user_id, order_id, total_cost):
         return True
 
     return func
+
+
+# Set up the consumer for the result queue
+channel.basic_consume(queue=stock_queue, on_message_callback=callback, auto_ack=True)
+channel.basic_consume(queue=payment_queue, on_message_callback=callback, auto_ack=True)

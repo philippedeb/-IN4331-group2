@@ -1,6 +1,8 @@
+import json
 import os
 import atexit
 
+import pika
 from bson import ObjectId
 from flask import Flask, jsonify
 from pymongo import MongoClient
@@ -14,6 +16,11 @@ client = MongoClient(mongo_url)
 db = client["wdm"]
 payments = db["payments"]
 
+connection = pika.BlockingConnection(pika.ConnectionParameters(host='in4331-group2_rabbitmq_1', port=5672, heartbeat=30))
+channel = connection.channel()
+# Create a queue for receiving responses from the stock and payment services
+queue = channel.queue_declare(queue='payment').method.queue
+
 
 def close_db_connection():
     client.close()
@@ -25,6 +32,7 @@ atexit.register(close_db_connection)
 @app.get('/')
 def index():
     return "Health check", 200
+
 
 @app.post('/create_user')
 def create_user():
@@ -87,3 +95,12 @@ def payment_status(user_id: str, order_id: str):
         return jsonify({"Paid": order_id in user.get("paid_orders", [])}), 200
     else:
         return jsonify({"Error": "User not found"}), 404
+
+
+def callback(ch, method, properties, body):
+    json_body = json.loads(body)
+    remove_credit(json_body['user'], json_body['order_id'], json_body['amount'])
+
+
+channel.basic_consume(
+    queue=queue, on_message_callback=callback, auto_ack=True)
