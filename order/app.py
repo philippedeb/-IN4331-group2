@@ -7,6 +7,8 @@ from flask import Flask, jsonify
 from pymongo import MongoClient
 import requests
 
+from fastapi import FastAPI, status, HTTPException
+
 from saga import Saga, State
 import asyncio
 
@@ -14,11 +16,7 @@ import asyncio
 payment_url = os.environ['PAYMENT_URL']
 stock_url = os.environ['STOCK_URL']
 
-app = Flask("order-service")
-
-gunicorn_logger = logging.getLogger('gunicorn.error')
-app.logger.handlers = gunicorn_logger.handlers
-app.logger.setLevel(gunicorn_logger.level)
+app = FastAPI()
 
 mongo_url = os.environ['DB_URL']
 
@@ -33,67 +31,67 @@ def close_db_connection():
 
 atexit.register(close_db_connection)
 
-@app.get('/')
+@app.get('/', status_code=status.HTTP_200_OK)
 def index():
-    return "Health check", 200
+    return "Health check"
 
 
-@app.post('/create/<user_id>')
+@app.post('/create/{user_id}', status_code=status.HTTP_200_OK)
 def create_order(user_id):
     order = {"user_id": user_id, "items": [], "paid": False}
     inserted_id = orders.insert_one(order).inserted_id
-    return jsonify({"order_id": str(inserted_id)}), 200
+    return {"order_id": str(inserted_id)}
 
 
-@app.delete('/remove/<order_id>')
+@app.delete('/remove/{order_id}', status_code=status.HTTP_200_OK)
 def remove_order(order_id):
     result = orders.delete_one({"_id": ObjectId(order_id)})
     if result.deleted_count > 0:
-        return jsonify({"Success": True}), 200
+        return {"Success": True}
     else:
-        return jsonify({"Error": "Order not found"}), 404
+        raise HTTPException(status_code=404, detail="Order not found")
 
 
-@app.post('/addItem/<order_id>/<item_id>')
+@app.post('/addItem/{order_id}/{item_id}', status_code=status.HTTP_200_OK)
 def add_item(order_id, item_id):
     result = orders.update_one({"_id": ObjectId(order_id)}, {
                                "$addToSet": {"items": item_id}})
     if result.matched_count > 0:
-        return jsonify({"Success": True}), 200
+        return {"Success": True}
     else:
-        return jsonify({"Error": "Order not found"}), 404
+        raise HTTPException(status_code=404, detail="Order not found")
 
 
-@app.delete('/removeItem/<order_id>/<item_id>')
+@app.delete('/removeItem/{order_id}/{item_id}', status_code=status.HTTP_200_OK)
 def remove_item(order_id, item_id):
     result = orders.update_one({"_id": ObjectId(order_id)}, {
                                "$pull": {"items": item_id}})
     if result.matched_count > 0:
-        return jsonify({"Success": True}), 200
+        return {"Success": True}
     else:
-        return jsonify({"Error": "Order not found"}), 404
+        raise HTTPException(status_code=404, detail="Order not found")
 
 
-@app.get('/find/<order_id>')
+@app.get('/find/{order_id}', status_code=status.HTTP_200_OK)
 def find_order(order_id):
     order = orders.find_one({"_id": ObjectId(order_id)})
     if order:
         order["_id"] = str(order["_id"])
         items = order["items"]
-        app.logger.error(items)
+        print(items)
         total_cost = 0
         for item_id in items:
             item = requests.get(f"{stock_url}/find/{item_id}").json()
-            app.logger.error(item)
+            print(item)
             total_cost += float(item["price"])
         order["total_cost"] = total_cost
-        return jsonify(order), 200
+        return order
     else:
-        return jsonify({"Error": "Order not found"}), 404
+        raise HTTPException(status_code=404, detail="Order not found")
 
 
-@app.post('/checkout/<order_id>')
-def checkout(order_id):
+@app.post('/checkout/{order_id}', status_code=status.HTTP_200_OK)
+async def checkout(order_id):
     order = orders.find_one({"_id": ObjectId(order_id)})
     if order:
         user_id = order["user_id"]
@@ -112,21 +110,21 @@ def checkout(order_id):
         saga.add_step(f"Payment user {user_id}: {total_cost}", payment_action(
             user_id, order_id, total_cost), payment_compensation(user_id, order_id, total_cost))
 
-        asyncio.run(saga.run())
+        await saga.run()
 
         if saga.state == State.SUCCESS:
-            return jsonify({"Success": True}), 200
+            return {"Success": True}
         else:
 
             error = {}
             for step in saga.steps:
                 error[step.name] = step.state.name
-                app.logger.error(f"Step {step.name}: {step.state}")
+                print(f"Step {step.name}: {step.state}")
             
-            return jsonify({"Error": error}), 400
+            raise HTTPException(status_code=400, detail=error)
 
     else:
-        return jsonify({"Error": "Order not found"}), 404
+        raise HTTPException(status_code=404, detail="Order not found")
 
 
 def decrease_stock_action(item_id):

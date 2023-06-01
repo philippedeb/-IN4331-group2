@@ -5,8 +5,9 @@ from bson import ObjectId
 from flask import Flask, jsonify
 from pymongo import MongoClient
 
+from fastapi import FastAPI, status, HTTPException
 
-app = Flask("stock-service")
+app = FastAPI()
 
 mongo_url = os.environ['DB_URL']
 
@@ -22,53 +23,53 @@ def close_db_connection():
 atexit.register(close_db_connection)
 
 
-@app.get('/')
+@app.get('/', status_code=status.HTTP_200_OK)
 def index():
-    return "Health check", 200
+    return "Health check"
 
-@app.post('/item/create/<price>')
+@app.post('/item/create/{price}', status_code=status.HTTP_200_OK)
 def create_item(price: int):
     document = {"price": price, "stock": 0}
     inserted_id = stock.insert_one(document).inserted_id
-    return jsonify({"item_id": str(inserted_id)}), 200
+    return {"item_id": str(inserted_id)}
 
 
-@app.get('/find/<item_id>')
+@app.get('/find/{item_id}', status_code=status.HTTP_200_OK)
 def find_item(item_id: str):
     try:
         item = stock.find_one({"_id": ObjectId(item_id)})
         if item:
             item["_id"] = str(item["_id"])
-            return jsonify(item), 200
+            return item
         else:
-            return jsonify({"Error": "Item not found"}), 404
+            raise HTTPException(status_code=404, detail="Item not found")
     except Exception as e:
-        return jsonify({"Error": str(e)}), 400
+        raise HTTPException(status_code=400, detail=e)
 
 
-@app.post('/add/<item_id>/<amount>')
+@app.post('/add/{item_id}/{amount}', status_code=status.HTTP_200_OK)
 def add_stock(item_id: str, amount: int):
     try:
         amount = int(amount)
         result = stock.update_one({"_id": ObjectId(item_id)}, {
                                   "$inc": {"stock": amount}})
         if result.matched_count > 0:
-            return jsonify({"Success": True}), 200
+            return {"Success": True}
         else:
-            return jsonify({"Error": "Item not found"}), 404
+            raise HTTPException(status_code=404, detail="Item not found")
     except Exception as e:
-        return jsonify({"Error": str(e)}), 400
+        raise HTTPException(status_code=400, detail=e)
 
 
-@app.post('/subtract/<item_id>/<amount>')
+@app.post('/subtract/{item_id}/{amount}', status_code=status.HTTP_200_OK)
 def remove_stock(item_id: str, amount: int):
     try:
         amount = int(amount)
         result = stock.update_one({"_id": ObjectId(item_id), "stock": {
                                   "$gte": amount}}, {"$inc": {"stock": -amount}})
         if result.matched_count > 0:
-            return jsonify({"Success": True}), 200
+            return {"Success": True}
         else:
-            return jsonify({"Error": "Item not found or not enough stock"}), 400
+            raise HTTPException(status_code=400, detail="Item not found or not enough stock")
     except Exception as e:
-        return jsonify({"Error": str(e)}), 400
+        raise HTTPException(status_code=404, detail=e)
