@@ -1,8 +1,11 @@
 from fastapi import FastAPI, status, HTTPException
 
+from celery import group
 import payment.tasks as payment
 import stock.tasks as stock
-import order.tasks as order
+import order.tasks as orders
+
+from .saga import Saga, State
 
 app = FastAPI()
 
@@ -110,7 +113,7 @@ def remove_stock(item_id: str, amount: int):
     
 @app.post('/orders/create/{user_id}', status_code=status.HTTP_200_OK)
 def create_order(user_id):
-    task = order.create_order.delay(user_id)
+    task = orders.create_order.delay(user_id)
     order = task.get()
     if order and not task.failed():
         return order
@@ -120,7 +123,7 @@ def create_order(user_id):
 
 @app.delete('/orders/remove/{order_id}', status_code=status.HTTP_200_OK)
 def remove_order(order_id):
-    task = order.remove_order.delay(order_id)
+    task = orders.remove_order.delay(order_id)
     result = task.get()
     if result and not task.failed():
         return {"success": True}
@@ -129,7 +132,7 @@ def remove_order(order_id):
 
 @app.post('/orders/addItem/{order_id}/{item_id}', status_code=status.HTTP_200_OK)
 def add_item(order_id, item_id):
-    task = order.add_item.delay(order_id, item_id)
+    task = orders.add_item.delay(order_id, item_id)
     result = task.get()
     if result and not task.failed():
         return {"success": True}
@@ -139,7 +142,7 @@ def add_item(order_id, item_id):
 
 @app.delete('/orders/removeItem/{order_id}/{item_id}', status_code=status.HTTP_200_OK)
 def remove_item(order_id, item_id):
-    task = order.remove_item.delay(order_id, item_id)
+    task = orders.remove_item.delay(order_id, item_id)
     result = task.get()
     if result and not task.failed():
         return {"success": True}
@@ -148,16 +151,18 @@ def remove_item(order_id, item_id):
 
 @app.get('/orders/find/{order_id}', status_code=status.HTTP_200_OK)
 def find_order(order_id):
-    order = orders.find_one({"_id": ObjectId(order_id)})
+    task = orders.find_order.delay(order_id)
+    order = task.get()
+    
     if order:
-        order["_id"] = str(order["_id"])
         items = order["items"]
         print(items)
+        items_task = group([stock.find_item.s(item_id) for item_id in items]).delay()
+        item_objects = items_task.get()
         total_cost = 0
-        for item_id in items:
-            item = requests.get(f"{stock_url}/find/{item_id}").json()
+        for item in item_objects:
             print(item)
-            total_cost += float(item["price"])
+            total_cost += int(item["price"])
         order["total_cost"] = total_cost
         return order
     else:
@@ -165,28 +170,32 @@ def find_order(order_id):
 
 
 @app.post('/orders/checkout/{order_id}', status_code=status.HTTP_200_OK)
-async def checkout(order_id):
-    order = orders.find_one({"_id": ObjectId(order_id)})
+def checkout(order_id):
+    task = orders.find_order.delay(order_id)
+    order = task.get()
     if order:
         user_id = order["user_id"]
         total_cost = 0
+        items = order["items"]
+        print(items)
+        items_task = group([stock.find_item.s(item_id) for item_id in items]).delay()
+        item_objects = items_task.get()
+
         saga = Saga()
 
-        for item_id in order["items"]:
-            item = requests.get(f"{stock_url}/find/{item_id}").json()
-            total_cost += float(item["price"])
+        for item in item_objects:
+            total_cost += int(item["price"])
 
             # One saga step for each item to update
-            saga.add_step(f"Decrease {item_id}", decrease_stock_action(
-                item_id), decrease_stock_compensation(item_id))
+            saga.add_step(f"Decrease {item['_id']}", stock.remove_stock.s(item['_id'], 1), stock.add_stock.s(item['_id'], 1))
 
         # One saga step for payment
-        saga.add_step(f"Payment user {user_id}: {total_cost}", payment_action(
-            user_id, order_id, total_cost), payment_compensation(user_id, order_id, total_cost))
+        saga.add_step(f"Payment user {user_id}: {total_cost}", payment.remove_credit.s(user_id, order_id, total_cost), 
+                      payment.cancel_payment.s(user_id, order_id, total_cost))
 
-        await saga.run()
+        state = saga.run()
 
-        if saga.state == State.SUCCESS:
+        if state == State.SUCCESS:
             return {"Success": True}
         else:
 

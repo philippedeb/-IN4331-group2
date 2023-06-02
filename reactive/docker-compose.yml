@@ -27,6 +27,29 @@ services:
   #   networks:
   #     - order-network
 
+  order-service:
+    build: ./
+    image: enriquebarba97/wdm-reactive:latest
+    command: celery -A order.tasks worker --loglevel=info --concurrency=2
+    env_file:
+      - env/order_mongo.env
+      - env/brokers.env
+    depends_on:
+      - order-db
+      - order-rabbit
+    networks:
+      - order-network
+
+  order-db:
+    image: mongo
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - order-db-data:/data/db
+    networks:
+      - order-network
+
   stock-service:
     build: ./
     image: enriquebarba97/wdm-reactive:latest
@@ -85,6 +108,14 @@ services:
     networks:
       - order-network
   
+  order-rabbit:
+    image: rabbitmq:latest
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=mypass
+    networks:
+      - order-network  
+
   payment-rabbit:
     image: rabbitmq:latest
     environment:
