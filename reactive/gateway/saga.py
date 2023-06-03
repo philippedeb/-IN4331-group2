@@ -57,9 +57,6 @@ class Saga():
         stock_results = stock_task.get()
         payment_results = payment_task.get()
 
-        print(all(stock_results))
-        print(all(payment_results))
-
         if all(stock_results) and all(payment_results):
             self.state = State.SUCCESS
             for step in self.steps:
@@ -67,7 +64,7 @@ class Saga():
             return self.state
         else:
             self.state = State.FAILURE
-            for i,action in enumerate(stock_task):
+            for i,action in enumerate(stock_results):
                 if not action:
                     self.steps[i].state = State.FAILURE
                 else:
@@ -77,6 +74,7 @@ class Saga():
 
             if not payment_results[0]:
                 self.steps[-1].state = State.FAILURE
+            else:
                 self.steps[-1].compensation.delay()
             return self.state
 

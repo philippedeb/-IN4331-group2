@@ -1,0 +1,38 @@
+{{ if not .Values.ordersharded.enabled}}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: order-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 256Mi
+---
+{{ end }}
+{{ if not .Values.stocksharded.enabled}}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: stock-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 256Mi
+---
+{{ end }}
+{{ if not .Values.paymentsharded.enabled}}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: payment-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 256Mi
+{{ end }}

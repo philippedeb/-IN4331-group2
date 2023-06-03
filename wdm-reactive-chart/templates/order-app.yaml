@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      name: order
+  template:
+    metadata:
+      labels:
+        name: order
+    spec:
+      containers:
+        - name: order
+          image: enriquebarba97/wdm-reactive:latest
+          resources:
+            limits:
+              memory: "750Mi"
+              cpu: "750m"
+            requests:
+              memory: "500Mi"
+              cpu: "250m"
+          command: ["celery"]
+          args: ["-A", "order.tasks", "worker", "--loglevel=info"]
+          envFrom:
+            - configMapRef:
+                name: brokers-config
+          env:
+            - name: DB_URL
+              {{ if .Values.ordersharded.enabled}}
+              value: mongodb://root:{{.Values.ordersharded.auth.rootPassword}}@{{.Release.Name}}-ordersharded:27017
+              {{ else }}
+              value: mongodb://order-db:27017
+              {{ end }}

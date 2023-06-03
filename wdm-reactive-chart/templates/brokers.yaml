@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: brokers-config
+  labels:
+    app: workers
+    tier: rabbit
+data:
+  PAYMENT_BROKER_URL: amqp://admin:mypass@payment-rabbit//
+  STOCK_BROKER_URL: amqp://admin:mypass@stock-rabbit//
+  ORDER_BROKER_URL: amqp://admin:mypass@order-rabbit//
