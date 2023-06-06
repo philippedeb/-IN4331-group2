@@ -38,9 +38,14 @@ class Step():
 class Saga():
     """Saga class that runs a list of steps. If a step fails, the steps that succeded are reverted using the compensation function."""
 
-    def __init__(self):
+    def __init__(self, logger, order_id):
+        self.logger = logger
+        self.order_id = order_id
         self.state = State.CREATED
         self.steps = []
+
+        self.logger.log(self.order_id, "saga", self.state)
+
 
     def add_step(self, name, action, compensation):
         step = Step.create(name, action, compensation)
@@ -51,6 +56,7 @@ class Saga():
     def run(self, *args, executor=None, **kwargs):
         """Run the saga"""
         self.state = State.RUNNING
+        self.logger.update_log_state(self.order_id, self.state)
         
         stock_task = group([step.action for step in self.steps if "Decrease" in step.name]).delay()
         payment_task = group([step.action for step in self.steps if "Payment" in step.name]).delay()
@@ -59,11 +65,13 @@ class Saga():
 
         if all(stock_results) and all(payment_results):
             self.state = State.SUCCESS
+            self.logger.update_log_state(self.order_id, self.state)
             for step in self.steps:
                 step.state = State.SUCCESS
             return self.state
         else:
             self.state = State.FAILURE
+            self.logger.update_log_state(self.order_id, self.state)
             for i,action in enumerate(stock_results):
                 if not action:
                     self.steps[i].state = State.FAILURE

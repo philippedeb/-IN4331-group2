@@ -113,6 +113,13 @@ services:
       resources:
         limits:
           cpus: '1'
+
+  logging-db:
+    image: 'redis:7.0'
+    ports: 
+      - '6379:6379'
+    networks:
+    - order-network
   
   nginx:
     image: nginx:latest

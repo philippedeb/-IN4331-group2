@@ -4,6 +4,7 @@ from fastapi.routing import APIRoute
 import time
 from typing import Callable
 from celery import group
+from logger import AsyncRedisLogger
 import payment.tasks as payment
 import stock.tasks as stock
 import order.tasks as orders
@@ -25,6 +26,7 @@ class TimedRoute(APIRoute):
         return custom_route_handler
 
 app = FastAPI()
+logger = AsyncRedisLogger()
 router = APIRouter(route_class=TimedRoute)
 
 @router.get('/', status_code=status.HTTP_200_OK)
