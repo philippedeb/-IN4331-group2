@@ -4,7 +4,7 @@ from fastapi.routing import APIRoute
 import time
 from typing import Callable
 from celery import group
-from logger import AsyncRedisLogger
+from .logger import AsyncRedisLogger
 import payment.tasks as payment
 import stock.tasks as stock
 import order.tasks as orders
@@ -27,6 +27,7 @@ class TimedRoute(APIRoute):
 
 app = FastAPI()
 logger = AsyncRedisLogger()
+logger.connect()
 router = APIRouter(route_class=TimedRoute)
 
 @router.get('/', status_code=status.HTTP_200_OK)
@@ -197,7 +198,7 @@ async def checkout(order_id):
         items_task = group([stock.find_item.s(item_id) for item_id in items]).delay()
         item_objects = items_task.get()
 
-        saga = Saga()
+        saga = Saga(logger, order_id)
 
         for item in item_objects:
             total_cost += int(item["price"])

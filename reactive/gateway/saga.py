@@ -43,7 +43,7 @@ class Saga():
         self.order_id = order_id
         self.state = State.CREATED
         self.steps = []
-
+        
         self.logger.log(self.order_id, "saga", self.state)
 
 
