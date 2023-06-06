@@ -1,0 +1,12 @@
+dependencies:
+- name: mongodb-sharded
+  repository: https://charts.bitnami.com/bitnami
+  version: 6.5.3
+- name: mongodb-sharded
+  repository: https://charts.bitnami.com/bitnami
+  version: 6.5.3
+- name: mongodb-sharded
+  repository: https://charts.bitnami.com/bitnami
+  version: 6.5.3
+digest: sha256:91ab3f50f4b6b502f17f52560bedafdcaaf95f2f3c2322e20f5f35766cb34f74
+generated: "2023-06-06T16:50:51.263458489+02:00"

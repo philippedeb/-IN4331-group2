@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-deployment
+spec:
+  replicas: {{.Values.paymentReplicas}}
+  selector:
+    matchLabels:
+      name: payment
+  template:
+    metadata:
+      labels:
+        name: payment
+    spec:
+      containers:
+        - name: payment
+          image: enriquebarba97/wdm-reactive:latest
+          resources:
+            limits:
+              memory: "750Mi"
+              cpu: "750m"
+            requests:
+              memory: "500Mi"
+              cpu: "250m"
+          command: ["celery"]
+          args: ["-A", "payment.tasks", "worker", "--loglevel=info"]
+          envFrom:
+            - configMapRef:
+                name: brokers-config
+          env:
+            - name: DB_URL
+              {{ if .Values.paymentsharded.enabled}}
+              value: mongodb://root:{{.Values.paymentsharded.auth.rootPassword}}@{{.Release.Name}}-paymentsharded:27017
+              {{ else }}
+              value: mongodb://payment-db:27017
+              {{ end }}

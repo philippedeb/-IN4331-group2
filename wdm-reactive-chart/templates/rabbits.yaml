@@ -1,0 +1,143 @@
+# deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-rabbit
+  labels:
+    name: order-rabbit
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: order-rabbit
+  template:
+    metadata:
+      labels:
+        name: order-rabbit
+    spec:
+      containers:
+      - name: rabbitmq
+        image: rabbitmq:3.6.8-management
+        env:
+        - name: RABBITMQ_DEFAULT_USER
+          value: "admin"
+        - name: RABBITMQ_DEFAULT_PASS
+          value: "mypass"
+        ports:
+        - containerPort: 15672
+          name: management
+        - containerPort: 5672
+          name: rabbitmq
+---
+# service
+apiVersion: v1
+kind: Service
+metadata:
+  name: order-rabbit
+spec:
+  selector:
+    name: order-rabbit
+  ports:
+  - port: 5672
+    name: rabbitmq
+    targetPort: rabbitmq
+    protocol: TCP
+  - port: 15672
+    name: rabbitmq-mgmt
+    targetPort: management
+---
+# deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-rabbit
+  labels:
+    name: payment-rabbit
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: payment-rabbit
+  template:
+    metadata:
+      labels:
+        name: payment-rabbit
+    spec:
+      containers:
+      - name: rabbitmq
+        image: rabbitmq:3.6.8-management
+        env:
+        - name: RABBITMQ_DEFAULT_USER
+          value: "admin"
+        - name: RABBITMQ_DEFAULT_PASS
+          value: "mypass"
+        ports:
+        - containerPort: 15672
+          name: management
+        - containerPort: 5672
+          name: rabbitmq
+---
+# service
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment-rabbit
+spec:
+  selector:
+    name: payment-rabbit
+  ports:
+  - port: 5672
+    name: rabbitmq
+    targetPort: rabbitmq
+    protocol: TCP
+  - port: 15672
+    name: rabbitmq-mgmt
+    targetPort: management
+---
+# deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stock-rabbit
+  labels:
+    name: stock-rabbit
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: stock-rabbit
+  template:
+    metadata:
+      labels:
+        name: stock-rabbit
+    spec:
+      containers:
+      - name: rabbitmq
+        image: rabbitmq:3.6.8-management
+        env:
+        - name: RABBITMQ_DEFAULT_USER
+          value: "admin"
+        - name: RABBITMQ_DEFAULT_PASS
+          value: "mypass"
+        ports:
+        - containerPort: 15672
+          name: management
+        - containerPort: 5672
+          name: rabbitmq
+---
+# service
+apiVersion: v1
+kind: Service
+metadata:
+  name: stock-rabbit
+spec:
+  selector:
+    name: stock-rabbit
+  ports:
+  - port: 5672
+    name: rabbitmq
+    targetPort: rabbitmq
+    protocol: TCP
+  - port: 15672
+    name: rabbitmq-mgmt
+    targetPort: management

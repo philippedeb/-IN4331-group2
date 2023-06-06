@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stock-deployment
+spec:
+  replicas: {{.Values.stockReplicas}}
+  selector:
+    matchLabels:
+      name: stock
+  template:
+    metadata:
+      labels:
+        name: stock
+    spec:
+      containers:
+        - name: stock
+          image: enriquebarba97/wdm-reactive:latest
+          resources:
+            limits:
+              memory: "750Mi"
+              cpu: "750m"
+            requests:
+              memory: "500Mi"
+              cpu: "250m"
+          command: ["celery"]
+          args: ["-A", "stock.tasks", "worker", "--loglevel=info"]
+          envFrom:
+            - configMapRef:
+                name: brokers-config
+          env:
+            - name: DB_URL
+              {{ if .Values.stocksharded.enabled}}
+              value: mongodb://root:{{.Values.stocksharded.auth.rootPassword}}@{{.Release.Name}}-stocksharded:27017
+              {{ else }}
+              value: mongodb://stock-db:27017
+              {{ end }}

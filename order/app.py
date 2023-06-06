@@ -1,5 +1,6 @@
 import os
 import atexit
+import logging
 
 from bson import ObjectId
 from flask import Flask, jsonify
@@ -14,6 +15,10 @@ payment_url = os.environ['PAYMENT_URL']
 stock_url = os.environ['STOCK_URL']
 
 app = Flask("order-service")
+
+gunicorn_logger = logging.getLogger('gunicorn.error')
+app.logger.handlers = gunicorn_logger.handlers
+app.logger.setLevel(gunicorn_logger.level)
 
 mongo_url = os.environ['DB_URL']
 

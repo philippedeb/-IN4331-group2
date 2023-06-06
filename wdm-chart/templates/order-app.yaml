@@ -28,7 +28,6 @@ spec:
       containers:
         - name: order
           image: enriquebarba97/order-service:latest
-          imagePullPolicy: Always
           resources:
             limits:
               memory: "1Gi"
@@ -46,4 +45,8 @@ spec:
             - name: STOCK_URL
               value: "http://stock-service:5000"
             - name: DB_URL
+              {{ if .Values.ordersharded.enabled}}
+              value: mongodb://root:{{.Values.ordersharded.auth.rootPassword}}@{{.Release.Name}}-ordersharded:27017
+              {{ else }}
               value: mongodb://order-db:27017
+              {{ end }}
