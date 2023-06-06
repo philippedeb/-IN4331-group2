@@ -1,3 +1,8 @@
+gatewayReplicas: 4
+orderReplicas: 2
+stockReplicas: 2
+paymentReplicas: 2
+
 ordersharded:
   # Enable sharding for mongo orders database
   # If disabled, the database will be created as a single node

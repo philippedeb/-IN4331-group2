@@ -4,6 +4,7 @@ kind: Job
 metadata:
   name: setup-shards-orders
 spec:
+  activeDeadlineSeconds: 600
   template:
     spec:
       containers:
@@ -38,6 +39,7 @@ kind: Job
 metadata:
   name: setup-shards-stock
 spec:
+  activeDeadlineSeconds: 600
   template:
     spec:
       containers:
@@ -72,6 +74,7 @@ kind: Job
 metadata:
   name: setup-shards-payment
 spec:
+  activeDeadlineSeconds: 600
   template:
     spec:
       containers:

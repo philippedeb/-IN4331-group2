@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: payment-deployment
 spec:
-  replicas: 2
+  replicas: {{.Values.paymentReplicas}}
   selector:
     matchLabels:
       name: payment

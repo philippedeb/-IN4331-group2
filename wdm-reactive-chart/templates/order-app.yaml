@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: order-deployment
 spec:
-  replicas: 2
+  replicas: {{.Values.orderReplicas}}
   selector:
     matchLabels:
       name: order
