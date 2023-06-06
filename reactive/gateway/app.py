@@ -174,9 +174,9 @@ async def find_order(order_id):
     if order:
         items = order["items"]
         items_task = group([stock.find_item.s(item_id) for item_id in items]).delay()
-        item_objects = items_task.get()
         total_cost = 0
-        for item in item_objects:
+        
+        for item in items_task.get():
             total_cost += int(item["price"])
         order["total_cost"] = total_cost
         return order
@@ -193,11 +193,10 @@ async def checkout(order_id):
         total_cost = 0
         items = order["items"]
         items_task = group([stock.find_item.s(item_id) for item_id in items]).delay()
-        item_objects = items_task.get()
 
         saga = Saga()
 
-        for item in item_objects:
+        for item in items_task.get():
             total_cost += int(item["price"])
 
             # One saga step for each item to update
