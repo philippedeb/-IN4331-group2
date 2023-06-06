@@ -21,6 +21,9 @@
 
 - `wdm-chart`
   Folder containing a Helm Chart that deploys the full app stack (databases + microservices)
+- `wdm-reactive-chart`
+  Chart for the second model of the app, implementing the reactive architecture with Celery and RabbitMQ
+
 
 ## Deployment types:
 
@@ -31,9 +34,10 @@ To deploy using the provided Helm chart, first add the Bitnami repo to your Helm
 helm repo add bitnami https://charts.bitnami.com/bitnami
 ```
 
-Then, open a terminal in the `wdm-chart` folder. You can modify the parameters in the values.yaml file as you see fit. Then run
+Then, open a terminal in the `wdm-reactive-chart` folder. You can modify the parameters in the values.yaml file as you see fit. Then run
 
  ```console
+helm dependency update
 helm dependency build
 helm install [RELEASE] .
 ```

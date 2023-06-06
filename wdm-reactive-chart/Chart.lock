@@ -8,5 +8,5 @@ dependencies:
 - name: mongodb-sharded
   repository: https://charts.bitnami.com/bitnami
   version: 6.5.3
-digest: sha256:b2d104410222bb5db2253956c671e5ef3f8b1c4d0baac32a326ec98e3c7f9405
-generated: "2023-05-22T10:48:02.941500053+02:00"
+digest: sha256:91ab3f50f4b6b502f17f52560bedafdcaaf95f2f3c2322e20f5f35766cb34f74
+generated: "2023-06-06T16:50:51.263458489+02:00"

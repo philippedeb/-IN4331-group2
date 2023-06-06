@@ -1,7 +1,7 @@
 gatewayReplicas: 4
-orderReplicas: 2
-stockReplicas: 2
-paymentReplicas: 2
+orderReplicas: 1
+stockReplicas: 1
+paymentReplicas: 1
 
 ordersharded:
   # Enable sharding for mongo orders database
